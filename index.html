@@ -42,27 +42,25 @@
   #toast small{display:block;font-size:.4em;margin-top:6px}
 
   /* Screens */
-  .screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto}
-  .card{background:var(--panel);backdrop-filter:blur(6px);border-radius:28px;padding:24px 22px;max-width:720px;width:100%;text-align:center;
+  .screen{position:fixed;inset:0;display:flex;padding:16px;overflow:auto}
+  .card{margin:auto;background:var(--panel);backdrop-filter:blur(6px);border-radius:28px;padding:24px 22px;max-width:720px;width:100%;text-align:center;
     box-shadow:0 8px 0 rgba(43,58,85,.12),0 20px 40px rgba(43,58,85,.15)}
   h1{margin:0 0 6px;font-size:clamp(28px,6vw,46px);line-height:1.2;letter-spacing:.02em}
   h1 .accent{color:var(--pink)}
   .lead{margin:0 0 18px;font-size:clamp(15px,3.4vw,19px);line-height:1.6}
-  .modes{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
-  @media (max-width:520px){.modes{grid-template-columns:1fr}}
-  .modeBtn{border:0;border-radius:22px;padding:18px 14px;cursor:pointer;color:#fff;font-family:inherit;text-align:center;transition:transform .1s;
-    box-shadow:0 6px 0 rgba(0,0,0,.15)}
-  .modeBtn:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.15)}
-  .modeBtn b{display:block;font-size:30px;font-weight:800}
-  .modeBtn span{display:block;font-size:15px;margin-top:4px;line-height:1.5;opacity:.95}
-  .kid{background:linear-gradient(160deg,#5fd38d,#2fae68)}
-  .adult{background:linear-gradient(160deg,#6aa6ff,#5865f2)}
+  #say{display:flex;flex-direction:column;align-items:center;gap:6px;margin:4px 0 10px}
+  #sayMic{width:88px;height:88px;border-radius:50%;display:grid;place-items:center;font-size:42px;background:#fff;box-shadow:0 4px 0 rgba(0,0,0,.08)}
+  #say.on #sayMic{background:var(--pink);animation:pulse 1.2s infinite}
+  #say.tap #sayMic{background:var(--yellow)}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,126,182,.6)}100%{box-shadow:0 0 0 24px rgba(255,126,182,0)}}
+  #sayText{font-size:clamp(20px,5vw,28px);font-weight:800}
+  #heard{min-height:1.4em;font-size:15px;opacity:.7}
+  .btn.big{font-size:26px;padding:16px 48px}
   .opts{display:flex;flex-wrap:wrap;gap:10px 18px;justify-content:center;align-items:center;font-size:16px;font-weight:800}
   .opts label{display:flex;align-items:center;gap:8px;cursor:pointer}
   input[type=checkbox]{width:22px;height:22px;accent-color:var(--pink)}
   input[type=range]{width:150px;accent-color:var(--pink)}
   .hint{margin:14px 0 0;font-size:14px;opacity:.75;line-height:1.6}
-  #micErr{color:#d6336c;font-weight:800;margin-top:10px}
   .row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:18px}
   .btn{border:0;border-radius:999px;padding:14px 26px;font-size:20px;font-weight:800;font-family:inherit;cursor:pointer;color:#fff;background:var(--pink);
     box-shadow:0 5px 0 rgba(0,0,0,.15)}
@@ -94,16 +92,16 @@
   <div class="card">
     <h1>声で飛ばす！<br><span class="accent">しゃぼん玉</span>の旅</h1>
     <p class="lead">「あー」と声を出すと しゃぼん玉が <b>うえ</b> へ。<br>声をとめると ゆっくり <b>した</b> へ。<br>雲や木をよけて ゴールをめざそう！</p>
-    <div class="modes">
-      <button class="modeBtn kid" data-mode="kid"><b>こども</b><span>おおきな すきま で<br>ゆったり あそべる</span></button>
-      <button class="modeBtn adult" data-mode="adult"><b>おとな</b><span>せまい すきま と<br>うごく しょうがいぶつ</span></button>
+    <div id="say">
+      <div id="sayMic">🎤</div>
+      <div id="sayText">「スタート」と言ってね</div>
+      <div id="heard"></div>
     </div>
-    <div class="opts">
-      <label><input type="checkbox" id="useMic" checked> マイクをつかう</label>
+    <div class="row" style="margin-top:0"><button class="btn big" id="startBtn">スタート</button></div>
+    <div class="opts" style="margin-top:16px">
       <label>かんど <input type="range" id="sens" min="1" max="10" step="1" value="5"></label>
     </div>
-    <div id="micErr" class="hidden"></div>
-    <p class="hint">マイクがないときは 画面をおしつづける／スペースキーでも とべます。<br>声が反応しにくいときは「かんど」を上げてね。</p>
+    <p class="hint">「スタート」と言うか ボタンをおすと はじまります。<br>マイクがないときは 画面をおしつづける／スペースキーでも とべます。<br>声が反応しにくいときは「かんど」を上げてね。</p>
   </div>
 </div>
 
@@ -129,8 +127,8 @@
     </div>
     <div class="row">
       <button class="btn" id="againBtn">もういちど</button>
-      <button class="btn sub" id="menuBtn">モードをえらぶ</button>
     </div>
+    <p class="hint" id="resSay">「スタート」と言っても もういちど あそべるよ</p>
   </div>
 </div>
 
@@ -141,12 +139,8 @@
 // ---------- 基本設定 ----------
 const H = 600;          // 仮想の高さ
 const GROUND = 540;     // 地面の高さ
-const MODES = {
-  kid:   { label:'こども', speed:100, len:5600, spacing:480, gapMin:280, gapMax:330, step:110,
-           moveRate:0,   amp:0,  r:24, up:165, down:52, lives:Infinity, size:1.25, seed:7 },
-  adult: { label:'おとな', speed:165, len:8600, spacing:360, gapMin:165, gapMax:200, step:170,
-           moveRate:.45, amp:60, r:18, up:235, down:110, lives:3, size:1.0, seed:21 },
-};
+const M = { speed:125, len:7000, spacing:420, gapMin:215, gapMax:255, step:140,
+            moveRate:.3, amp:50, r:21, up:200, down:75, lives:Infinity, size:1.1, seed:11 };
 
 // ---------- 画面 ----------
 const cv = document.getElementById('c'), ctx = cv.getContext('2d');
@@ -173,13 +167,11 @@ const store = {
   get(k, d){ try { const v = localStorage.getItem('syabon.'+k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } },
   set(k, v){ try { localStorage.setItem('syabon.'+k, JSON.stringify(v)); } catch(e){} },
 };
-$('useMic').checked = store.get('useMic', true);
 $('sens').value = store.get('sens', 5);
-$('useMic').onchange = e => store.set('useMic', e.target.checked);
 $('sens').oninput = e => { store.set('sens', +e.target.value); updateThreshold(); };
 
 // ---------- 音（マイクと効果音） ----------
-let ac = null, analyser = null, micBuf = null, micReady = false;
+let ac = null, analyser = null, micBuf = null, micReady = false, micStream = null, micSrc = null;
 let noise = 0.004, threshold = 0.012, rms = 0, voice = 0;
 function audio(){ if(!ac){ const C = window.AudioContext || window.webkitAudioContext; if(C) ac = new C(); } if(ac && ac.state==='suspended') ac.resume(); return ac; }
 
@@ -191,9 +183,16 @@ async function initMic(){
   const src = ac.createMediaStreamSource(stream);
   analyser = ac.createAnalyser(); analyser.fftSize = 1024;
   src.connect(analyser);
+  micStream = stream; micSrc = src;
   micBuf = new Float32Array(analyser.fftSize);
   micReady = true;
   return true;
+}
+// ゲームが終わったらマイクを返す（「スタート」の聞き取りとぶつからないように）
+function stopMic(){
+  if(micStream){ micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+  if(micSrc){ try { micSrc.disconnect(); } catch(e){} micSrc = null; }
+  micReady = false; rms = 0; voice = 0;
 }
 function updateThreshold(){
   const s = +$('sens').value;                 // 1(にぶい)〜10(びんかん)
@@ -201,7 +200,7 @@ function updateThreshold(){
   threshold = Math.max(noise * 2.2, 0) + base;
 }
 function readMic(){
-  if(!micReady || !useMic) { rms = 0; voice = 0; return; }
+  if(!micReady) { rms = 0; voice = 0; return; }
   analyser.getFloatTimeDomainData(micBuf);
   let s = 0; for(let i=0;i<micBuf.length;i++) s += micBuf[i]*micBuf[i];
   const r = Math.sqrt(s/micBuf.length);
@@ -227,7 +226,7 @@ const sfx = {
 };
 
 // ---------- 入力（タップ／スペースでも飛べる） ----------
-let held = false, useMic = true;
+let held = false;
 addEventListener('keydown', e => {
   if(e.code==='Space' || e.code==='ArrowUp'){ held = true; e.preventDefault(); }
   if((e.code==='Escape' || e.code==='KeyP') && game && game.state==='play') pauseGame();
@@ -291,23 +290,23 @@ function hitShape(sh, bx, by, br){
 
 // ---------- ゲームの状態 ----------
 let game = null;
-let demo = { camX:0, cols: buildLevel(MODES.kid), t:0 };
+let demo = { camX:0, cols: buildLevel(M), t:0 };
 const parts = [];
 
-function startGame(modeKey){
-  const m = MODES[modeKey];
+function startGame(){
+  const m = M;
   game = {
-    key:modeKey, m, cols: buildLevel(m), camX:0, t:0, elapsed:0,
+    m, cols: buildLevel(m), camX:0, t:0, elapsed:0,
     y: 300, vy: 0, wob: 0, stars:0, hits:0, lives:m.lives,
-    state:'calib', timer: micReady && useMic ? 0.9 : 0, inv:0, calib:[], countN:3,
+    state:'calib', timer: micReady ? 1.5 : 0, inv:0, calib:[], countN:3,
   };
   game.totalStars = game.cols.length;
   parts.length = 0;
   ['title','result','pause'].forEach(id=>$(id).classList.add('hidden'));
   $('hud').classList.remove('hidden');
-  $('micBox').classList.toggle('hidden', !(micReady && useMic));
+  $('micBox').classList.toggle('hidden', !micReady);
   $('lifeChip').classList.toggle('hidden', m.lives === Infinity);
-  if(micReady && useMic) toast('しずかにしてね…', 'まわりの音をはかっています');
+  if(micReady) toast('しずかにしてね…', 'まわりの音をはかっています');
   updateHud();
 }
 function bubbleX(){ return game.camX + VW*0.28; }
@@ -318,29 +317,69 @@ function pauseGame(){ if(!game || game.state!=='play') return; game.state='pause
 $('pauseBtn').onclick = e => { e.stopPropagation(); pauseGame(); };
 $('resumeBtn').onclick = () => { $('pause').classList.add('hidden'); game.state='play'; };
 $('quitBtn').onclick = toMenu;
-$('menuBtn').onclick = toMenu;
-$('againBtn').onclick = () => startGame(game.key);
 function toMenu(){
-  game = null; toast('');
+  game = null; toast(''); stopMic();
   ['hud','micBox','pause','result'].forEach(id=>$(id).classList.add('hidden'));
   $('title').classList.remove('hidden');
+  startListening();
 }
 
-document.querySelectorAll('.modeBtn').forEach(b => b.onclick = async () => {
+let starting = false;
+async function begin(){
+  if(starting || !waiting()) return;
+  starting = true;
+  stopListening();
   audio();
-  useMic = $('useMic').checked;
-  $('micErr').classList.add('hidden');
-  if(useMic){
-    try { await initMic(); }
-    catch(err){
-      useMic = false;
-      $('micErr').textContent = 'マイクがつかえませんでした。画面タップ／スペースキーで あそびます。';
-      $('micErr').classList.remove('hidden');
-      await new Promise(r=>setTimeout(r, 1400));
-    }
+  try { await initMic(); } catch(e){ /* マイクなし：タップ／スペースで遊ぶ */ }
+  starting = false;
+  startGame();
+}
+$('startBtn').onclick = begin;
+$('againBtn').onclick = begin;
+
+// ---------- 「スタート」の声でスタート ----------
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null, listening = false;
+function waiting(){ return !game || game.state === 'done'; }
+function setSay(cls, text){ $('say').className = cls; $('sayText').textContent = text; }
+function isStart(t){ return /スタート|すたーと|スタト|start/i.test(String(t).replace(/\s/g, '')); }
+function heardStart(){ if(!waiting() || starting) return; $('heard').textContent = '「スタート」！'; begin(); }
+function startListening(){
+  if(!waiting() || starting) return;
+  if(!SR){ setSay('', 'ボタンをおして スタート！'); $('resSay').textContent = ''; return; }   // 聞き取りができないブラウザ
+  if(!ac || ac.state !== 'running'){ setSay('tap', 'がめんを タップしてね'); return; }
+  listening = true;
+  if(!rec){
+    rec = new SR(); rec.lang = 'ja-JP'; rec.continuous = true; rec.interimResults = true; rec.maxAlternatives = 3;
+    rec.onstart = () => { if(waiting()) setSay('on', '「スタート」と言ってね'); };
+    rec.onresult = e => {
+      for(let i = e.resultIndex; i < e.results.length; i++){
+        for(let j = 0; j < e.results[i].length; j++){
+          const t = e.results[i][j].transcript;
+          if(j === 0 && waiting()) $('heard').textContent = '「' + t + '」';
+          if(isStart(t)){ heardStart(); return; }
+        }
+      }
+    };
+    rec.onerror = e => {
+      if(e.error === 'not-allowed' || e.error === 'service-not-allowed'){ listening = false; setSay('tap', 'がめんを タップしてね'); }
+      else if(e.error === 'audio-capture'){ listening = false; setSay('', 'マイクが見つかりません。ボタンでスタート'); }
+    };
+    rec.onend = () => { if(listening) setTimeout(() => { if(listening) try { rec.start(); } catch(_){} }, 300); };
   }
-  startGame(b.dataset.mode);
-});
+  $('heard').textContent = '';
+  try { rec.start(); } catch(_){}
+}
+function stopListening(){ listening = false; if(rec) try { rec.abort(); } catch(_){} }
+// 最初のタップで音を使えるようにしてから聞き取りを始める
+function unlock(){
+  const a = audio();
+  if(!waiting() || starting || listening || !SR) return;
+  const go = () => startListening();
+  (a && a.state !== 'running' ? a.resume() : Promise.resolve()).then(go, go);
+}
+addEventListener('pointerdown', unlock, true);
+addEventListener('keydown', unlock, true);
 
 function popBubble(){
   const g = game; g.hits++; sfx.pop();
@@ -348,7 +387,7 @@ function popBubble(){
     parts.push({x:bubbleX(), y:g.y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, life:.7, max:.7, r:2+Math.random()*4, kind:'drop'}); }
   if(g.lives !== Infinity){ g.lives--; }
   if(g.lives <= 0){ g.state='over'; g.timer=1.2; toast('ぱちん！'); }
-  else { g.state='pop'; g.timer=1.1; toast('ぱちん！', g.key==='kid' ? 'だいじょうぶ、もういっかい！' : 'のこり '+g.lives); }
+  else { g.state='pop'; g.timer=1.1; toast('ぱちん！', g.lives === Infinity ? 'だいじょうぶ、もういっかい！' : 'のこり '+g.lives); }
   updateHud();
 }
 function respawn(){
@@ -361,12 +400,14 @@ function respawn(){
 function finish(clear){
   const g = game; g.state = 'done';
   $('hud').classList.add('hidden'); $('micBox').classList.add('hidden'); toast('');
+  stopMic(); held = false;
+  setTimeout(startListening, 400);
   $('resTitle').textContent = clear ? 'ゴール！🎉' : 'ざんねん…';
   $('resTime').textContent = g.elapsed.toFixed(1);
   $('resStars').textContent = g.stars + '/' + g.totalStars;
   $('resHits').textContent = g.hits;
   let rank = 1;
-  if(clear){ rank = 1 + (g.hits <= (g.key==='kid'?3:1) ? 1 : 0) + (g.hits===0 && g.stars >= g.totalStars*0.7 ? 1 : 0); }
+  if(clear){ rank = 1 + (g.hits <= 2 ? 1 : 0) + (g.hits===0 && g.stars >= g.totalStars*0.7 ? 1 : 0); }
   $('rank').textContent = clear ? '★'.repeat(rank) + '☆'.repeat(3-rank) : '';
   $('resMsg').textContent = !clear ? 'つぎは ゴールまで いけるかな？'
     : rank===3 ? 'かんぺき！ しゃぼん玉マスター！' : rank===2 ? 'すごい！ もうすこしで かんぺき！' : 'よくがんばったね！';
@@ -387,7 +428,7 @@ function update(dt){
   readMic();
   const input = Math.max(voice, held ? 0.75 : 0);
   // マイクメーター
-  if(micReady && useMic){
+  if(micReady){
     const full = threshold*5;
     $('meterFill').style.width = clamp(rms/full,0,1)*100+'%';
     $('meterThr').style.left = (100/5)+'%';
@@ -396,20 +437,20 @@ function update(dt){
   for(let i=parts.length-1;i>=0;i--){ const p=parts[i]; p.life-=dt; p.x+=p.vx*dt; p.y+=p.vy*dt;
     if(p.kind==='drop') p.vy += 300*dt; if(p.kind==='trail'){ p.vy -= 20*dt; } if(p.life<=0) parts.splice(i,1); }
 
-  if(!game){ demo.t += dt; demo.camX = (demo.camX + 70*dt) % (MODES.kid.len - 1200); return; }
+  if(!game){ demo.t += dt; demo.camX = (demo.camX + 70*dt) % (M.len - 1200); return; }
   const g = game, m = g.m;
   g.wob += dt;
 
   if(g.state==='calib'){
-    if(micReady && useMic){
-      // まわりの音の大きさをはかる
+    if(micReady && g.timer < 0.9){
+      // まわりの音の大きさをはかる（「スタート」の声が消えてから）
       if(micBuf){ analyser.getFloatTimeDomainData(micBuf); let s=0; for(let i=0;i<micBuf.length;i++) s+=micBuf[i]*micBuf[i]; g.calib.push(Math.sqrt(s/micBuf.length)); }
     }
     g.timer -= dt;
     if(g.timer <= 0){
       if(g.calib.length){ const arr=g.calib.slice().sort((a,b)=>a-b); noise = arr[Math.floor(arr.length*0.8)] || noise; }
       updateThreshold();
-      g.state='count'; g.timer=0.8; g.countN=3; toast('3', useMic && micReady ? '「あー」でうえに とぶよ' : 'おしつづけると うえに とぶよ'); sfx.tick();
+      g.state='count'; g.timer=0.8; g.countN=3; toast('3', micReady ? '「あー」でうえに とぶよ' : 'おしつづけると うえに とぶよ'); sfx.tick();
     }
     return;
   }
@@ -419,7 +460,7 @@ function update(dt){
     g.y = clamp(g.y + (input>0 ? -60 : 30)*dt, 200, 360);
     if(g.timer <= 0){
       g.countN--;
-      if(g.countN > 0){ g.timer = 0.8; toast(String(g.countN), useMic && micReady ? '「あー」でうえに とぶよ' : 'おしつづけると うえに とぶよ'); sfx.tick(); }
+      if(g.countN > 0){ g.timer = 0.8; toast(String(g.countN), micReady ? '「あー」でうえに とぶよ' : 'おしつづけると うえに とぶよ'); sfx.tick(); }
       else { g.state='play'; toast('スタート！'); sfx.go(); g.msgT = 0.8; }
     }
     return;
@@ -605,7 +646,7 @@ function render(){
   ctx.setTransform(dpr*scale,0,0,dpr*scale,0,offY*dpr);
   if(!game){
     drawBackground(demo.camX, demo.t);
-    drawWorld(demo.cols, demo.camX, demo.t, MODES.kid.size);
+    drawWorld(demo.cols, demo.camX, demo.t, M.size);
     drawBubble(VW*0.28, 280 + Math.sin(demo.t*1.2)*60, 24, demo.t, 1);
     drawParts(0);
     return;
@@ -631,9 +672,11 @@ function loop(now){
 }
 updateThreshold();
 requestAnimationFrame(loop);
+audio();
+startListening();
 // 動作確認用（URL に ?test をつけたときだけ）
 if(/[?&]test/.test(location.search)){
-  window.__syabon = { game:()=>game, hold:v=>{ held=v; }, tick(sec){ for(let i=0;i<sec*60;i++) update(1/60); render(); } };
+  window.__syabon = { say:t=>{ if(isStart(t)) heardStart(); }, game:()=>game, hold:v=>{ held=v; }, tick(sec){ for(let i=0;i<sec*60;i++) update(1/60); render(); } };
 }
 })();
 </script>
