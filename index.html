@@ -78,7 +78,7 @@
 
 <div id="hud" class="hidden">
   <div class="chip" id="starChip">⭐ 0</div>
-  <div class="chip" id="lifeChip">🫧🫧🫧</div>
+  <div class="chip" id="lifeChip">❤️❤️❤️</div>
   <div id="progWrap"><div id="progFill"></div><div id="progBub"></div><div id="progFlag">🏁</div></div>
   <button id="pauseBtn" aria-label="いちじていし">Ⅱ</button>
 </div>
@@ -91,7 +91,7 @@
 <div id="title" class="screen">
   <div class="card">
     <h1>声で飛ばす！<br><span class="accent">しゃぼん玉</span>の旅</h1>
-    <p class="lead">「あー」と声を出すと しゃぼん玉が <b>うえ</b> へ。<br>声をとめると ゆっくり <b>した</b> へ。<br>雲や木をよけて ゴールをめざそう！</p>
+    <p class="lead">「あー」と声を出すと しゃぼん玉が <b>うえ</b> へ。<br>声をとめると ゆっくり <b>した</b> へ。<br>雲や木をよけて ゴールをめざそう！ <b>3かい</b> ぶつかったら アウト！</p>
     <div id="say">
       <div id="sayMic">🎤</div>
       <div id="sayText">「スタート」と言ってね</div>
@@ -140,7 +140,7 @@
 const H = 600;          // 仮想の高さ
 const GROUND = 540;     // 地面の高さ
 const M = { speed:125, len:7000, spacing:420, gapMin:215, gapMax:255, step:140,
-            moveRate:.3, amp:50, r:21, up:200, down:75, lives:Infinity, size:1.1, seed:11 };
+            moveRate:.3, amp:50, r:27, hitR:18, up:200, down:75, lives:3, size:1.1, seed:11 };
 
 // ---------- 画面 ----------
 const cv = document.getElementById('c'), ctx = cv.getContext('2d');
@@ -342,12 +342,11 @@ const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let rec = null, listening = false;
 function waiting(){ return !game || game.state === 'done'; }
 function setSay(cls, text){ $('say').className = cls; $('sayText').textContent = text; }
-function isStart(t){ return /スタート|すたーと|スタト|start/i.test(String(t).replace(/\s/g, '')); }
+function isStart(t){ return /[スす][タた][ーあア]?[トと]|start|スタット/i.test(String(t).replace(/[\s、。！!]/g, '')); }
 function heardStart(){ if(!waiting() || starting) return; $('heard').textContent = '「スタート」！'; begin(); }
 function startListening(){
   if(!waiting() || starting) return;
   if(!SR){ setSay('', 'ボタンをおして スタート！'); $('resSay').textContent = ''; return; }   // 聞き取りができないブラウザ
-  if(!ac || ac.state !== 'running'){ setSay('tap', 'がめんを タップしてね'); return; }
   listening = true;
   if(!rec){
     rec = new SR(); rec.lang = 'ja-JP'; rec.continuous = true; rec.interimResults = true; rec.maxAlternatives = 3;
@@ -362,7 +361,7 @@ function startListening(){
       }
     };
     rec.onerror = e => {
-      if(e.error === 'not-allowed' || e.error === 'service-not-allowed'){ listening = false; setSay('tap', 'がめんを タップしてね'); }
+      if(e.error === 'not-allowed' || e.error === 'service-not-allowed'){ listening = false; setSay('tap', 'マイクを きょかしてね（タップ）'); }
       else if(e.error === 'audio-capture'){ listening = false; setSay('', 'マイクが見つかりません。ボタンでスタート'); }
     };
     rec.onend = () => { if(listening) setTimeout(() => { if(listening) try { rec.start(); } catch(_){} }, 300); };
@@ -379,6 +378,7 @@ function unlock(){
   (a && a.state !== 'running' ? a.resume() : Promise.resolve()).then(go, go);
 }
 addEventListener('pointerdown', unlock, true);
+addEventListener('keydown', e => { if(e.code === 'Enter' && waiting()) begin(); });
 addEventListener('keydown', unlock, true);
 
 function popBubble(){
@@ -386,8 +386,8 @@ function popBubble(){
   for(let i=0;i<22;i++){ const a=Math.random()*Math.PI*2, sp=80+Math.random()*180;
     parts.push({x:bubbleX(), y:g.y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, life:.7, max:.7, r:2+Math.random()*4, kind:'drop'}); }
   if(g.lives !== Infinity){ g.lives--; }
-  if(g.lives <= 0){ g.state='over'; g.timer=1.2; toast('ぱちん！'); }
-  else { g.state='pop'; g.timer=1.1; toast('ぱちん！', g.lives === Infinity ? 'だいじょうぶ、もういっかい！' : 'のこり '+g.lives); }
+  if(g.lives <= 0){ g.state='over'; g.timer=1.4; toast('アウト！', '3かい ぶつかっちゃった'); }
+  else { g.state='pop'; g.timer=1.1; toast('ぱちん！', 'あと ' + g.lives + ' かい'); }
   updateHud();
 }
 function respawn(){
@@ -402,14 +402,14 @@ function finish(clear){
   $('hud').classList.add('hidden'); $('micBox').classList.add('hidden'); toast('');
   stopMic(); held = false;
   setTimeout(startListening, 400);
-  $('resTitle').textContent = clear ? 'ゴール！🎉' : 'ざんねん…';
+  $('resTitle').textContent = clear ? 'ゴール！🎉' : 'アウト…';
   $('resTime').textContent = g.elapsed.toFixed(1);
   $('resStars').textContent = g.stars + '/' + g.totalStars;
   $('resHits').textContent = g.hits;
   let rank = 1;
-  if(clear){ rank = 1 + (g.hits <= 2 ? 1 : 0) + (g.hits===0 && g.stars >= g.totalStars*0.7 ? 1 : 0); }
+  if(clear){ rank = 1 + (g.hits <= 1 ? 1 : 0) + (g.hits===0 && g.stars >= g.totalStars*0.7 ? 1 : 0); }
   $('rank').textContent = clear ? '★'.repeat(rank) + '☆'.repeat(3-rank) : '';
-  $('resMsg').textContent = !clear ? 'つぎは ゴールまで いけるかな？'
+  $('resMsg').textContent = !clear ? '3かい ぶつかって アウト！ つぎは ゴールまで いけるかな？'
     : rank===3 ? 'かんぺき！ しゃぼん玉マスター！' : rank===2 ? 'すごい！ もうすこしで かんぺき！' : 'よくがんばったね！';
   setTimeout(()=>$('result').classList.remove('hidden'), clear ? 900 : 300);
 }
@@ -417,7 +417,7 @@ function finish(clear){
 function updateHud(){
   const g = game; if(!g) return;
   $('starChip').textContent = '⭐ ' + g.stars;
-  if(g.lives !== Infinity) $('lifeChip').textContent = g.lives > 0 ? '🫧'.repeat(g.lives) : '—';
+  if(g.lives !== Infinity) $('lifeChip').textContent = g.lives > 0 ? '❤️'.repeat(g.lives) + '🤍'.repeat(g.m.lives - g.lives) : '🤍🤍🤍';
   const p = clamp((bubbleX()) / g.m.len, 0, 1);
   $('progFill').style.width = (p*100)+'%';
   $('progBub').style.left = (p*100)+'%';
@@ -442,6 +442,11 @@ function update(dt){
   g.wob += dt;
 
   if(g.state==='calib'){
+    if(micReady && ac && ac.state !== 'running'){
+      if(!g.needTap){ g.needTap = true; ac.resume().catch(()=>{}); toast('がめんを タッチしてね', 'こえで とぶ じゅんび（さいしょの1かいだけ）'); }
+      return;
+    }
+    if(g.needTap){ g.needTap = false; toast('しずかにしてね…', 'まわりの音をはかっています'); }
     if(micReady && g.timer < 0.9){
       // まわりの音の大きさをはかる（「スタート」の声が消えてから）
       if(micBuf){ analyser.getFloatTimeDomainData(micBuf); let s=0; for(let i=0;i<micBuf.length;i++) s+=micBuf[i]*micBuf[i]; g.calib.push(Math.sqrt(s/micBuf.length)); }
@@ -492,7 +497,7 @@ function update(dt){
   }
 
   // 当たり判定とスター
-  const br = m.r*0.85;
+  const br = m.hitR;      // 見た目より少し小さい当たり判定
   for(const c of g.cols){
     if(c.x < bx - 150) continue;
     if(c.x > bx + 150) break;
@@ -614,20 +619,31 @@ function drawGoal(len, camX){
 function drawBubble(x, y, r, t, alpha){
   ctx.save(); ctx.globalAlpha = alpha;
   const sx = 1 + Math.sin(t*5)*0.04, sy = 1 - Math.sin(t*5)*0.04;
-  ctx.translate(x,y); ctx.scale(sx,sy);
+  ctx.translate(x,y);
+  // まわりのやわらかい光（空の色から浮かせる）
+  const glow = ctx.createRadialGradient(0,0,r*0.8,0,0,r*1.6);
+  glow.addColorStop(0,'rgba(255,255,255,.75)'); glow.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle = glow; circle(0,0,r*1.6);
+  ctx.scale(sx,sy);
+  // 中身：ピンク〜水色の色つき
   const body = ctx.createRadialGradient(-r*0.3,-r*0.35,r*0.1,0,0,r);
-  body.addColorStop(0,'rgba(255,255,255,.55)'); body.addColorStop(.6,'rgba(190,235,255,.25)'); body.addColorStop(1,'rgba(255,170,230,.45)');
+  body.addColorStop(0,'rgba(255,255,255,.9)'); body.addColorStop(.55,'rgba(150,215,255,.6)'); body.addColorStop(1,'rgba(255,120,200,.75)');
   ctx.fillStyle = body; circle(0,0,r);
-  ctx.lineWidth = Math.max(2, r*0.1);
+  // こい色のふち（どの背景でも見える）
+  ctx.lineWidth = Math.max(2.5, r*0.1); ctx.strokeStyle = 'rgba(43,58,85,.75)';
+  ctx.beginPath(); ctx.arc(0,0,r+ctx.lineWidth*0.5,0,Math.PI*2); ctx.stroke();
+  // にじ色の輪
+  ctx.lineWidth = Math.max(3, r*0.18);
   if(ctx.createConicGradient){
     const cg = ctx.createConicGradient(t*1.5, 0, 0);
-    ['#ff9ed0','#ffd6a5','#fdffb6','#caffbf','#9bf6ff','#a0c4ff','#bdb2ff','#ff9ed0'].forEach((c,i,a)=>cg.addColorStop(i/(a.length-1), c));
+    ['#ff4fa3','#ffa94d','#ffe14d','#4fd17a','#3fc1ff','#5b7cff','#b65bff','#ff4fa3'].forEach((c,i,a)=>cg.addColorStop(i/(a.length-1), c));
     ctx.strokeStyle = cg;
-  } else ctx.strokeStyle = 'rgba(160,200,255,.9)';
-  ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.stroke();
-  ctx.fillStyle='rgba(255,255,255,.95)';
-  ctx.beginPath(); ctx.ellipse(-r*0.38,-r*0.4,r*0.22,r*0.12,-0.7,0,Math.PI*2); ctx.fill();
-  circle(r*0.35, r*0.4, r*0.07);
+  } else ctx.strokeStyle = '#5b7cff';
+  ctx.beginPath(); ctx.arc(0,0,r-ctx.lineWidth*0.5,0,Math.PI*2); ctx.stroke();
+  // ひかり
+  ctx.fillStyle='#fff';
+  ctx.beginPath(); ctx.ellipse(-r*0.36,-r*0.38,r*0.26,r*0.14,-0.7,0,Math.PI*2); ctx.fill();
+  circle(r*0.34, r*0.38, r*0.09);
   ctx.restore();
 }
 function drawParts(camX){
@@ -647,7 +663,7 @@ function render(){
   if(!game){
     drawBackground(demo.camX, demo.t);
     drawWorld(demo.cols, demo.camX, demo.t, M.size);
-    drawBubble(VW*0.28, 280 + Math.sin(demo.t*1.2)*60, 24, demo.t, 1);
+    drawBubble(VW*0.28, 280 + Math.sin(demo.t*1.2)*60, M.r, demo.t, 1);
     drawParts(0);
     return;
   }
@@ -657,7 +673,7 @@ function render(){
   drawGoal(m.len, g.camX);
   const bx = VW*0.28;
   if(g.state!=='pop' && g.state!=='over'){
-    const blink = g.inv > 0 ? (Math.sin(g.inv*20) > 0 ? 0.35 : 0.95) : 1;
+    const blink = g.inv > 0 ? (Math.sin(g.inv*20) > 0 ? 0.5 : 1) : 1;
     drawBubble(bx, g.y, m.r, g.wob, blink);
   }
   drawParts(g.camX);
