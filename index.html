@@ -35,7 +35,17 @@
   #micLabel.on{background:var(--pink);color:#fff;transform:scale(1.08)}
   #meter{width:160px;height:14px;background:var(--panel);border-radius:999px;position:relative;overflow:hidden}
   #meterFill{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,#9be7b4,#43c47a,#ffd23f,#ff7eb6)}
-  #meterThr{position:absolute;top:0;bottom:0;width:3px;background:#2b3a55;opacity:.6}
+  #meterThr{position:absolute;top:-2px;bottom:-2px;width:4px;margin-left:-2px;background:#2b3a55;opacity:.8;transition:left .15s}
+  #sensBox{pointer-events:auto;display:flex;align-items:center;gap:4px;background:var(--panel);border-radius:999px;padding:4px}
+  #sensBox button{border:0;width:36px;height:36px;border-radius:50%;background:var(--pink);color:#fff;font-size:22px;font-weight:800;font-family:inherit;cursor:pointer;line-height:1}
+  #sensBox button:active{transform:scale(.9)}
+  #sensVal{font-weight:800;font-size:15px;min-width:74px;text-align:center}
+  #sensVal.bump{animation:bump .3s}
+  @keyframes bump{50%{transform:scale(1.25)}}
+  .sensRow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center}
+  .sensRow small{font-size:13px;opacity:.7}
+  #sensT{min-width:1.5em;font-size:20px;color:var(--pink)}
+  @media (max-width:520px){ #micLabel{display:none} #meter{width:100px} #sensVal{min-width:60px;font-size:13px} }
 
   #toast{position:fixed;left:50%;top:38%;transform:translate(-50%,-50%);font-size:clamp(28px,7vw,64px);font-weight:800;color:#fff;
     text-shadow:0 4px 0 rgba(43,58,85,.35),0 0 18px rgba(255,126,182,.6);pointer-events:none;text-align:center;white-space:nowrap}
@@ -85,6 +95,11 @@
 <div id="micBox" class="hidden">
   <div id="micLabel">🎤 こえ</div>
   <div id="meter"><div id="meterFill"></div><div id="meterThr"></div></div>
+  <div id="sensBox">
+    <button id="sensDown" aria-label="かんどを下げる">−</button>
+    <span id="sensVal">かんど 5</span>
+    <button id="sensUp" aria-label="かんどを上げる">＋</button>
+  </div>
 </div>
 <div id="toast"></div>
 
@@ -99,9 +114,9 @@
     </div>
     <div class="row" style="margin-top:0"><button class="btn big" id="startBtn">スタート</button></div>
     <div class="opts" style="margin-top:16px">
-      <label>かんど <input type="range" id="sens" min="1" max="10" step="1" value="5"></label>
+      <div class="sensRow">こえの かんど <small>にぶい</small><input type="range" id="sens" min="1" max="10" step="1" value="5"><small>びんかん</small><b id="sensT">5</b></div>
     </div>
-    <p class="hint">「スタート」と言うか ボタンをおすと はじまります。<br>マイクがないときは 画面をおしつづける／スペースキーでも とべます。<br>声が反応しにくいときは「かんど」を上げてね。</p>
+    <p class="hint">「スタート」と言うか ボタンをおすと はじまります。<br>マイクがないときは 画面をおしつづける／スペースキーでも とべます。<br>声が反応しにくいときは「かんど」を上げてね（ゲーム中も 左下の −／＋ や キーボードの −／＋ で かえられます）。</p>
   </div>
 </div>
 
@@ -167,8 +182,21 @@ const store = {
   get(k, d){ try { const v = localStorage.getItem('syabon.'+k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } },
   set(k, v){ try { localStorage.setItem('syabon.'+k, JSON.stringify(v)); } catch(e){} },
 };
-$('sens').value = store.get('sens', 5);
-$('sens').oninput = e => { store.set('sens', +e.target.value); updateThreshold(); };
+// かんど（1=にぶい 〜 10=びんかん）。タイトルのスライダーとゲーム中の −／＋ は同じ値
+function setSens(v){
+  v = Math.max(1, Math.min(10, Math.round(+v || 5)));
+  $('sens').value = v; $('sensT').textContent = v; $('sensVal').textContent = 'かんど ' + v;
+  const el = $('sensVal'); el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
+  store.set('sens', v); updateThreshold();
+}
+$('sens').oninput = e => setSens(e.target.value);
+$('sensDown').onclick = e => { e.stopPropagation(); setSens(+$('sens').value - 1); };
+$('sensUp').onclick = e => { e.stopPropagation(); setSens(+$('sens').value + 1); };
+addEventListener('keydown', e => {
+  if(e.target && e.target.tagName === 'INPUT') return;
+  if(e.key === '-' || e.code === 'NumpadSubtract') setSens(+$('sens').value - 1);
+  if(e.key === '+' || e.key === '=' || e.code === 'NumpadAdd') setSens(+$('sens').value + 1);
+});
 
 // ---------- 音（マイクと効果音） ----------
 let ac = null, analyser = null, micBuf = null, micReady = false, micStream = null, micSrc = null;
@@ -197,7 +225,8 @@ function stopMic(){
 function updateThreshold(){
   const s = +$('sens').value;                 // 1(にぶい)〜10(びんかん)
   const base = 0.045 * Math.pow(0.68, s - 1);
-  threshold = Math.max(noise * 2.2, 0) + base;
+  const mult = 3.0 - 0.18*(s - 1);            // びんかんほど まわりの音に近くても反応する
+  threshold = noise * mult + base;
 }
 function readMic(){
   if(!micReady) { rms = 0; voice = 0; return; }
@@ -429,9 +458,10 @@ function update(dt){
   const input = Math.max(voice, held ? 0.75 : 0);
   // マイクメーター
   if(micReady){
-    const full = threshold*5;
-    $('meterFill').style.width = clamp(rms/full,0,1)*100+'%';
-    $('meterThr').style.left = (100/5)+'%';
+    // 音の大きさを対数で表示。線より右に出ると とぶ（かんどを上げると線が左へ動く）
+    const pos = x => clamp((Math.log10(Math.max(x, 1e-5)) + 3.5) / 3, 0, 1);
+    $('meterFill').style.width = pos(rms)*100+'%';
+    $('meterThr').style.left = pos(threshold)*100+'%';
     $('micLabel').classList.toggle('on', voice > 0);
   }
   for(let i=parts.length-1;i>=0;i--){ const p=parts[i]; p.life-=dt; p.x+=p.vx*dt; p.y+=p.vy*dt;
@@ -686,13 +716,13 @@ function loop(now){
   update(dt); render();
   requestAnimationFrame(loop);
 }
-updateThreshold();
+setSens(store.get('sens', 5));
 requestAnimationFrame(loop);
 audio();
 startListening();
 // 動作確認用（URL に ?test をつけたときだけ）
 if(/[?&]test/.test(location.search)){
-  window.__syabon = { say:t=>{ if(isStart(t)) heardStart(); }, game:()=>game, hold:v=>{ held=v; }, tick(sec){ for(let i=0;i<sec*60;i++) update(1/60); render(); } };
+  window.__syabon = { thr:()=>threshold, say:t=>{ if(isStart(t)) heardStart(); }, game:()=>game, hold:v=>{ held=v; }, tick(sec){ for(let i=0;i<sec*60;i++) update(1/60); render(); } };
 }
 })();
 </script>
